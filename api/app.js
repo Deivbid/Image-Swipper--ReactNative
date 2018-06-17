@@ -12,7 +12,8 @@ let urls = [
 	'https://www.youtube.com/channel/UCZcvko6qVYbuCCNMpjnwigA/videos',
 	'https://www.youtube.com/user/kRaToSWorLD/videos',
 	'https://www.youtube.com/user/3DJuegosTV/videos',
-	'https://www.youtube.com/user/elfedelobo/videos'
+	'https://www.youtube.com/user/elfedelobo/videos',
+	'https://www.youtube.com/user/h3h3Productions/videos'
 ]
 
 let final = []
@@ -47,7 +48,7 @@ async function getPic() {
 		await page.evaluate('window.scrollTo(0, -100)');
 	 	await page.screenshot({path: 'public/testing' + (i+1) + '.jpg'});	
 
-	 	let obj = {url: urls[i], image: 'http://192.168.1.3:3000/testing' + (i+1) + '.jpg'}	
+	 	let obj = {url: urls[i], image: 'http://192.168.0.103:3000/testing' + (i+1) + '.jpg'}	
 	 	final.push(obj)
 	}  
 

@@ -3,7 +3,11 @@ import {
   ScrollView,
   Text,
   View,
-  StyleSheet 
+  StyleSheet,
+  Dimensions,
+  Image,
+  Animated,
+  PanResponder
 } from 'react-native';
 //import { movies } from './data';
 import MoviePoster from './moviePoster';
@@ -14,23 +18,101 @@ const days = [ 'Today', 'Tomorrow'];
 // Same for times
 const times = [ '9:00 AM', '11:10 AM', '12:00 PM', '1:50 PM', '4:30 PM', '6:00 PM', '7:10 PM', '9:45 PM' ];
 //const movies = []
+
+const SCREEN_HEIGHT = Dimensions.get('window').height
+const SCREEN_WIDTH = Dimensions.get('window').width
+
 export default class Movies extends Component {
 
   constructor(props)
   {
     super(props)
 
+    this.position = new Animated.ValueXY()
     this.state = {
-        popupIsOpen: false,
+        currentIndex: 0,
     }
+
+    this.rotate = this.position.x.interpolate({
+      inputRange:[-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: ['-10deg', '0deg', '10deg'],
+      extrapolate: 'clamp'
+    })
+
+    this.rotateAndTranslate = {
+      transform:[{
+        rotate: this.rotate
+      },
+      ...this.position.getTranslateTransform()
+      ]
+    }
+
+    this.likeOpacity = this.position.x.interpolate({
+      inputRange:[-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: [0, 0, 1],
+      extrapolate: 'clamp'     
+    })
+
+    this.dislikeOpacity = this.position.x.interpolate({
+      inputRange:[-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: [1, 0, 0],
+      extrapolate: 'clamp'     
+    })
+
+    this.nextCardOpacity = this.position.x.interpolate({
+      inputRange:[-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: [1, 0, 1],
+      extrapolate: 'clamp'
+    })
+
+    this.nextCardScale = this.position.x.interpolate({
+      inputRange:[-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+      outputRange: [1, 0.8, 1],
+      extrapolate: 'clamp'
+    })    
   }
 
 
   componentWillMount(){
-          axios.get('http://192.168.1.3:3000/getLinks')
-/*          .then((response) => {
-            console.log(response)
-            return response.json()})*/
+    this.PanResponder = PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => true,
+      onPanResponderMove: (evt, gestureState) => {
+        this.position.setValue({x: gestureState.dx, y: gestureState.dy })
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if(gestureState.dx > 120)
+        {
+          Animated.spring(this.position, {
+            toValue: { x: SCREEN_WIDTH + 100, y: gestureState.dy }
+          }).start(() => {
+            this.setState({ currentIndex: this.state.currentIndex + 1 }, () => {
+              this.position.setValue({ x: 0, y: 0 })
+            })
+          })
+        }
+        else
+        {
+          if(gestureState.dx < -120)
+          {
+            Animated.spring(this.position, {
+              toValue: { x: -SCREEN_WIDTH - 100, y: gestureState.dy }
+            }).start(() => {
+              this.setState({ currentIndex: this.state.currentIndex + 1 }, () => {
+                this.position.setValue({ x: 0, y: 0 })
+              })
+            })
+          }
+          else
+          {
+            Animated.spring(this.position, {
+              toValue: { x: 0, y: 0 },
+              friction: 4
+            }).start()            
+          }
+        }
+      }
+    })
+          axios.get('http://192.168.0.103:3000/getLinks')
           .then((responseJson) => {
             console.log("Entre Aqui")
             console.log(responseJson.data[0])
@@ -49,22 +131,52 @@ export default class Movies extends Component {
         movie,  
       });
     }
-/*    fetch("http://127.0.0.1:3000/")
-    .then(resp => {
-      console.log("it works")
-    })
-    .catch(err => {
-      console.log(err)
-    })
-  */  
+  renderImages = () => {
+    return this.state.data.map((item, index) => {
 
-  componentDidMount(){
-  }
+      if( index < this.state.currentIndex)
+      {
+        return null
+      }
+      else
+      {
+        if(index == this.state.currentIndex)
+        {
+            return(
+              <Animated.View
+                {...this.PanResponder.panHandlers}
+                key={index} 
+                style={[this.rotateAndTranslate, { height: SCREEN_HEIGHT - 120, width: SCREEN_WIDTH, padding: 10, position: 'absolute' }]}
+                >
 
-  closeMovie = () => {
-    this.setState({
-      popupIsOpen: false,
-    });
+                  <Animated.View style={{opacity: this.likeOpacity, transform: [{rotate: '-30deg'}], position:'absolute', top:50, left:40, zIndex: 1000}}>
+                    <Text style={{borderWidth: 1, borderColor: 'green', color: 'green', fontSize:32, fontWeight: '800', padding: 10}}>
+                      ESTE VA
+                    </Text>
+                  </Animated.View>
+
+                  <Animated.View style={{opacity: this.dislikeOpacity, transform: [{rotate: '30deg'}], position:'absolute', top:50, right:40, zIndex: 1000}}>
+                    <Text style={{borderWidth: 1, borderColor: 'red', color: 'red', fontSize:32, fontWeight: '800', padding: 10}}>
+                      ESTE NO VA
+                    </Text>
+                  </Animated.View>
+
+                  <Image style={{flex:1, height: null, width: null, resizeMode: 'cover', borderRadius: 20}} source={{uri:item.image}} />
+              </Animated.View>        
+            )
+        }
+        else
+        {
+          return(
+            <Animated.View
+              key={index} 
+              style={[{opacity: this.nextCardOpacity, transform: [{scale: this.nextCardScale}], height: SCREEN_HEIGHT - 120, width: SCREEN_WIDTH, padding: 10, position: 'absolute' }]}>
+                <Image style={{flex:1, height: null, width: null, resizeMode: 'cover', borderRadius: 20}} source={{uri:item.image}} />
+            </Animated.View>        
+          )
+        }
+      }
+    }).reverse()
   }
 
   render() {
@@ -74,7 +186,7 @@ export default class Movies extends Component {
       movies = [
       {
         title: 'La La Land',
-        poster: 'http://192.168.1.3:3000/testing.jpg',
+        poster: 'http://192.168.0.103:3000/testing.jpg',
         genre: 'Drama/Romance',
         days,
         times,
@@ -113,6 +225,13 @@ export default class Movies extends Component {
         genre: 'Fantasy/Myster',
         days,
         times,
+      },
+      {
+        title: 'Birth of a Nation',
+        poster: this.state.data[5].image,
+        genre: 'Fantasy/Myster',
+        days,
+        times,
       }
     ];
    }
@@ -120,26 +239,22 @@ export default class Movies extends Component {
    {
     return <Text> Loading . . . </Text>
    }
-    return (
-      <View>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-            // Hide all scroll indicators
-          showsHorizontalScrollIndicator={false}
-          showsVerticalScrollIndicator={false}
-        >
-          {movies.map((movie, index) => <MoviePoster
-            movie={movie}
-            onOpen={this.openMovie}
-            key={index}
-          />)}
 
-          <MoviePopup
-            movie={this.state.movie}
-            isOpen={this.state.popupIsOpen}
-            onClose={this.closeMovie}
-          />
-        </ScrollView>
+
+
+    return (
+      <View style={{flex: 1, backgroundColor: 'black'}}>
+        <View style={{height: 60}}>
+
+        </View>
+
+        <View style={{flex:1}}>
+          {this.renderImages()}
+        </View>
+
+        <View style={{height: 60}}>
+
+        </View>
       </View>
     );
   }
