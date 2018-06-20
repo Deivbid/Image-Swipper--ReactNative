@@ -7,7 +7,8 @@ import {
   Dimensions,
   Image,
   Animated,
-  PanResponder
+  PanResponder,
+  Button
 } from 'react-native';
 //import { movies } from './data';
 import MoviePoster from './moviePoster';
@@ -18,6 +19,8 @@ const days = [ 'Today', 'Tomorrow'];
 // Same for times
 const times = [ '9:00 AM', '11:10 AM', '12:00 PM', '1:50 PM', '4:30 PM', '6:00 PM', '7:10 PM', '9:45 PM' ];
 //const movies = []
+const current = {}
+const finals = []
 
 const SCREEN_HEIGHT = Dimensions.get('window').height
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -31,6 +34,8 @@ export default class Movies extends Component {
     this.position = new Animated.ValueXY()
     this.state = {
         currentIndex: 0,
+        finals: [],
+        current: {}
     }
 
     this.rotate = this.position.x.interpolate({
@@ -82,6 +87,8 @@ export default class Movies extends Component {
       onPanResponderRelease: (evt, gestureState) => {
         if(gestureState.dx > 120)
         {
+          finals.push(this.state.data[this.state.currentIndex].url)
+          current = {}
           Animated.spring(this.position, {
             toValue: { x: SCREEN_WIDTH + 100, y: gestureState.dy }
           }).start(() => {
@@ -94,6 +101,7 @@ export default class Movies extends Component {
         {
           if(gestureState.dx < -120)
           {
+            current = {}
             Animated.spring(this.position, {
               toValue: { x: -SCREEN_WIDTH - 100, y: gestureState.dy }
             }).start(() => {
@@ -112,10 +120,8 @@ export default class Movies extends Component {
         }
       }
     })
-          axios.get('http://192.168.0.103:3000/getLinks')
+          axios.get('http://192.168.1.3:3000/getLinks')
           .then((responseJson) => {
-            console.log("Entre Aqui")
-            console.log(responseJson.data[0])
             this.setState({data: responseJson.data})
             
           })
@@ -131,9 +137,21 @@ export default class Movies extends Component {
         movie,  
       });
     }
-  renderImages = () => {
-    return this.state.data.map((item, index) => {
 
+  onPressLearnMore(){
+    let payload = JSON.stringify(finals)
+//    axios.post('http://192.168.1.3:3000/test', {payload})
+    axios({
+      method: 'post',
+      headers: {'Content-Type': 'application/json'},
+      url: 'http://192.168.1.3:3000/test',
+      data: payload
+      
+    });
+   }
+  renderImages = () => {
+    console.log(finals)
+    return this.state.data.map((item, index) => {
       if( index < this.state.currentIndex)
       {
         return null
@@ -142,6 +160,7 @@ export default class Movies extends Component {
       {
         if(index == this.state.currentIndex)
         {
+
             return(
               <Animated.View
                 {...this.PanResponder.panHandlers}
@@ -167,6 +186,7 @@ export default class Movies extends Component {
         }
         else
         {
+
           return(
             <Animated.View
               key={index} 
@@ -182,11 +202,11 @@ export default class Movies extends Component {
   render() {
    if(this.state.data)
    {
-      console.log(this.state.data)
+      
       movies = [
       {
         title: 'La La Land',
-        poster: 'http://192.168.0.103:3000/testing.jpg',
+        poster: 'http://192.168.1.3:3000/testing.jpg',
         genre: 'Drama/Romance',
         days,
         times,
@@ -253,7 +273,12 @@ export default class Movies extends Component {
         </View>
 
         <View style={{height: 60}}>
-
+        <Button
+          onPress={this.onPressLearnMore}
+          title="Listo"
+          color="#841584"
+          accessibilityLabel="Presioname cuando estes listo"
+        />
         </View>
       </View>
     );

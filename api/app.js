@@ -4,7 +4,7 @@ const port = process.env.PORT || 3000
 
 const app = express()
 
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 app.use(express.static(__dirname + '/public'));
 
 let urls = [
@@ -17,13 +17,26 @@ let urls = [
 ]
 
 let final = []
-
+let result = []
 
 /* TESTING */
 app.post("/test", (req, res) => {
 	
+	
+	console.log('Tocaste')
+	console.log(req.body)
+	req.body.map((item, i) => {
+		result.push(item)
+	})
+	
+	res.redirect('/');
+})
 
-
+app.get("/", (req, res) => {
+	let myJsonString = JSON.stringify(result);
+	
+	res.setHeader('Content-Type', 'application/json');
+	res.send(myJsonString)
 })
 
 app.get("/getLinks", (req, res) => {
@@ -48,7 +61,7 @@ async function getPic() {
 		await page.evaluate('window.scrollTo(0, -100)');
 	 	await page.screenshot({path: 'public/testing' + (i+1) + '.jpg'});	
 
-	 	let obj = {url: urls[i], image: 'http://192.168.0.103:3000/testing' + (i+1) + '.jpg'}	
+	 	let obj = {url: urls[i], image: 'http://192.168.1.3:3000/testing' + (i+1) + '.jpg'}	
 	 	final.push(obj)
 	}  
 
